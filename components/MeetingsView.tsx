@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Plus, Trash2, Clock, CheckCircle2, Circle, X } from 'lucide-react';
+import { Plus, Trash2, Clock, CheckCircle2, ChevronLeft, ChevronRight, AlertCircle, CheckCircle } from 'lucide-react';
 import { Meeting, MeetingCategory } from '../types';
 
 interface MeetingsViewProps {
@@ -8,312 +8,262 @@ interface MeetingsViewProps {
   setMeetings: React.Dispatch<React.SetStateAction<Meeting[]>>;
   categories: MeetingCategory[];
   setCategories: React.Dispatch<React.SetStateAction<MeetingCategory[]>>;
+  itemsPerPage: number;
 }
 
-const MeetingsView: React.FC<MeetingsViewProps> = ({ meetings, setMeetings, categories, setCategories }) => {
+const MeetingsView: React.FC<MeetingsViewProps> = ({ meetings, setMeetings, categories, setCategories, itemsPerPage }) => {
   const [showAddForm, setShowAddForm] = useState(false);
-  const [showCatForm, setShowCatForm] = useState(false);
-  const [newCatName, setNewCatName] = useState('');
-  const [formData, setFormData] = useState<{
-    title: string;
-    startTime: string;
-    description: string;
-    categoryIds: string[];
-  }>({
-    title: '',
-    startTime: '',
-    description: '',
-    categoryIds: []
-  });
+  const [activePage, setActivePage] = useState(1);
+  const [completedPage, setCompletedPage] = useState(1);
+  const [now, setNow] = useState(new Date());
 
-  // Auto-complete check: if meeting time is in the past, mark as completed
+  // Update waktu "sekarang" setiap 30 detik
   useEffect(() => {
-    const now = new Date();
-    const needsUpdate = meetings.some(m => !m.completed && new Date(m.startTime) < now);
-    if (needsUpdate) {
-      setMeetings(prev => prev.map(m => {
-        if (!m.completed && new Date(m.startTime) < now) {
-          return { ...m, completed: true };
-        }
-        return m;
-      }));
-    }
-  }, [meetings, setMeetings]);
+    const timer = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(timer);
+  }, []);
 
-  const timelineData = useMemo(() => {
-    return [...meetings].sort((a, b) => a.startTime.localeCompare(b.startTime));
+  // Filter 1: Agenda Aktif (Belum Selesai, bisa yang akan datang atau yang sudah lewat/terlewat)
+  const activeMeetings = useMemo(() => {
+    return meetings
+      .filter(m => !m.completed)
+      .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
   }, [meetings]);
+
+  // Filter 2: Riwayat (Sudah Selesai)
+  const completedMeetings = useMemo(() => {
+    return meetings
+      .filter(m => m.completed)
+      .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+  }, [meetings]);
+
+  const totalActivePages = Math.ceil(activeMeetings.length / itemsPerPage) || 1;
+  const totalCompletedPages = Math.ceil(completedMeetings.length / itemsPerPage) || 1;
+
+  const paginatedActive = useMemo(() => {
+    const start = (activePage - 1) * itemsPerPage;
+    return activeMeetings.slice(start, start + itemsPerPage);
+  }, [activeMeetings, activePage, itemsPerPage]);
+
+  const paginatedCompleted = useMemo(() => {
+    const start = (completedPage - 1) * itemsPerPage;
+    return completedMeetings.slice(start, start + itemsPerPage);
+  }, [completedMeetings, completedPage, itemsPerPage]);
 
   const handleAddMeeting = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.title || !formData.startTime) return;
+    const form = e.target as HTMLFormElement;
+    const formDataObj = new FormData(form);
+    const title = formDataObj.get('title') as string;
+    const startTime = formDataObj.get('startTime') as string;
+    if (!title || !startTime) return;
 
-    const newMeeting: Meeting = {
+    const newM: Meeting = {
       id: crypto.randomUUID(),
-      title: formData.title,
-      startTime: formData.startTime,
+      title,
+      startTime,
       completed: false,
-      categoryIds: formData.categoryIds,
-      description: formData.description
+      categoryIds: [],
     };
 
-    setMeetings(prev => [...prev, newMeeting]);
+    setMeetings(prev => [...prev, newM]);
     setShowAddForm(false);
-    setFormData({ title: '', startTime: '', description: '', categoryIds: [] });
+    setActivePage(1);
   };
 
-  const handleAddCategory = () => {
-    if (!newCatName.trim()) return;
-    const colors = ['#3b82f6', '#10b981', '#ef4444', '#f59e0b', '#8b5cf6', '#ec4899'];
-    const newCat: MeetingCategory = {
-      id: crypto.randomUUID(),
-      name: newCatName.trim(),
-      color: colors[Math.floor(Math.random() * colors.length)]
-    };
-    setCategories(prev => [...prev, newCat]);
-    setNewCatName('');
-  };
+  const renderMeetingCard = (m: Meeting) => {
+    const mDate = new Date(m.startTime);
+    const isPast = mDate.getTime() < now.getTime();
+    const isRunning = isPast && (now.getTime() - mDate.getTime() < 3600000); // Sedang berlangsung jika dalam 1 jam terakhir
+    const isReallyMissed = isPast && !isRunning && !m.completed;
 
-  const deleteCategory = (id: string) => {
-    setCategories(prev => prev.filter(c => c.id !== id));
-    setMeetings(prev => prev.map(m => ({
-      ...m,
-      categoryIds: m.categoryIds.filter(cid => cid !== id)
-    })));
-  };
+    return (
+      <div key={m.id} className="relative flex items-start gap-6 group">
+        {/* Indikator Waktu & Garis */}
+        <div className="flex flex-col items-center w-12 flex-shrink-0">
+          <span className={`text-[10px] font-black mb-2 ${
+            m.completed ? 'text-slate-300' : 
+            isReallyMissed ? 'text-red-500' : 
+            isRunning ? 'text-indigo-600' : 'text-slate-500'
+          }`}>
+            {mDate.getHours().toString().padStart(2, '0')}:{mDate.getMinutes().toString().padStart(2, '0')}
+          </span>
+          <div className={`w-4 h-4 rounded-full border-4 z-10 transition-all duration-500 ${
+            m.completed ? 'bg-emerald-500 border-white shadow-sm' : 
+            isReallyMissed ? 'bg-red-500 border-red-100 scale-110' : 
+            isRunning ? 'bg-indigo-600 border-indigo-100 animate-pulse' : 'bg-white border-slate-200 shadow-sm'
+          }`} />
+        </div>
 
-  const toggleComplete = (id: string) => {
-    setMeetings(prev => prev.map(m => m.id === id ? { ...m, completed: !m.completed } : m));
-  };
+        {/* Konten Kartu */}
+        <div className={`flex-1 p-5 rounded-[32px] border transition-all duration-300 ${
+          m.completed ? 'bg-slate-50 border-slate-100 opacity-60' : 
+          isReallyMissed ? 'bg-red-50/30 border-red-100 shadow-sm' : 
+          isRunning ? 'bg-white border-indigo-200 shadow-xl shadow-indigo-100/50' : 
+          'bg-white border-slate-50 shadow-sm hover:border-indigo-100'
+        }`}>
+          <div className="flex justify-between items-start mb-3">
+            <div className="flex flex-col">
+              <h4 className={`font-bold text-sm ${m.completed ? 'line-through text-slate-400' : 'text-slate-800'}`}>
+                {m.title}
+              </h4>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">
+                  {mDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                </span>
+                
+                {/* Badge Status Dinamis */}
+                {!m.completed && (
+                  <>
+                    {isReallyMissed ? (
+                      <span className="bg-red-500 text-white text-[7px] font-black px-1.5 py-0.5 rounded-full uppercase flex items-center gap-1">
+                        <AlertCircle size={8} /> Terlewat
+                      </span>
+                    ) : isRunning ? (
+                      <span className="bg-indigo-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded-full uppercase animate-pulse">Sedang Jalan</span>
+                    ) : (
+                      <span className="bg-slate-100 text-slate-500 text-[7px] font-black px-1.5 py-0.5 rounded-full uppercase">Mendatang</span>
+                    )}
+                  </>
+                )}
+                {m.completed && (
+                  <span className="bg-emerald-100 text-emerald-600 text-[7px] font-black px-1.5 py-0.5 rounded-full uppercase">Selesai</span>
+                )}
+              </div>
+            </div>
+            <button 
+              onClick={() => setMeetings(prev => prev.filter(x => x.id !== m.id))}
+              className="text-slate-200 hover:text-red-500 p-1 transition-colors"
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
 
-  const deleteMeeting = (id: string) => {
-    setMeetings(prev => prev.filter(m => m.id !== id));
-  };
-
-  const toggleCategorySelection = (catId: string) => {
-    setFormData(prev => {
-      const exists = prev.categoryIds.includes(catId);
-      if (exists) {
-        return { ...prev, categoryIds: prev.categoryIds.filter(id => id !== catId) };
-      }
-      return { ...prev, categoryIds: [...prev.categoryIds, catId] };
-    });
-  };
-
-  const formatTime = (isoString: string) => {
-    const d = new Date(isoString);
-    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          <div className="flex justify-end gap-2 mt-2">
+            <button 
+              onClick={() => setMeetings(prev => prev.map(x => x.id === m.id ? {...x, completed: !x.completed} : x))}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                m.completed ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-100' : 
+                isReallyMissed ? 'bg-red-500 text-white shadow-lg shadow-red-100' : 'bg-slate-50 text-slate-400 hover:bg-indigo-50 hover:text-indigo-600'
+              }`}
+            >
+              {m.completed ? <CheckCircle2 size={14} /> : <CheckCircle2 size={14} />}
+              {m.completed ? 'Buka Kembali' : 'Selesaikan'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
-    <div className="p-6 space-y-8 animate-in fade-in duration-500">
-      {/* Category Management Area */}
-      <div className="space-y-3">
-        <div className="flex justify-between items-center">
-          <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Kategori Meeting</h3>
-          <button 
-            onClick={() => setShowCatForm(!showCatForm)}
-            className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg"
-          >
-            {showCatForm ? 'Selesai' : 'Kelola'}
-          </button>
+    <div className="flex flex-col h-full animate-in fade-in duration-500 pb-24">
+      {/* Header Utama */}
+      <div className="px-6 pt-6 flex justify-between items-center mb-6">
+        <div>
+          <h2 className="text-2xl font-black text-slate-800 tracking-tight">Timeline</h2>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Agenda Harian Anda</p>
         </div>
+        <button 
+          onClick={() => setShowAddForm(true)}
+          className="bg-indigo-600 text-white w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-100 active:scale-90 transition-transform"
+        >
+          <Plus size={24} />
+        </button>
+      </div>
+
+      <div className="px-6 flex-1 space-y-12 overflow-y-auto no-scrollbar pb-12">
         
-        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 min-h-[40px] items-center">
-          {categories.map(c => (
-            <div 
-              key={c.id} 
-              className="flex-shrink-0 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-slate-100 flex items-center gap-2 group"
-            >
-              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: c.color }} />
-              <span className="text-xs font-bold text-slate-700">{c.name}</span>
-              {showCatForm && (
-                <button onClick={() => deleteCategory(c.id)} className="text-slate-300 hover:text-red-500 ml-1">
-                  <X size={14} />
-                </button>
+        {/* BAGIAN 1: AGENDA AKTIF (TERMASUK YANG TERLEWAT) */}
+        <section className="relative">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-sm font-black text-indigo-600 uppercase tracking-[0.2em] flex items-center gap-2">
+              <Clock size={16} /> Agenda Aktif
+            </h3>
+            <div className="flex gap-2">
+              {activeMeetings.some(m => new Date(m.startTime).getTime() < now.getTime()) && (
+                <span className="text-[8px] font-black bg-red-100 text-red-500 px-2 py-1 rounded-lg uppercase">Ada Terlewat!</span>
               )}
+              <span className="text-[10px] font-bold bg-indigo-50 text-indigo-400 px-2 py-1 rounded-lg">
+                {activeMeetings.length} Item
+              </span>
             </div>
-          ))}
-          {showCatForm && (
-            <div className="flex-shrink-0 flex gap-2 ml-2">
-              <input 
-                type="text" 
-                value={newCatName}
-                onChange={e => setNewCatName(e.target.value)}
-                placeholder="Tambah..."
-                className="text-xs bg-white border border-slate-200 rounded-xl px-3 py-1.5 outline-none focus:border-indigo-500 w-24 shadow-sm"
-                onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
-              />
-              <button onClick={handleAddCategory} className="bg-indigo-600 text-white p-1.5 rounded-xl">
-                <Plus size={14} />
-              </button>
-            </div>
-          )}
-        </div>
+          </div>
+
+          <div className="absolute left-12 top-10 bottom-0 w-0.5 bg-indigo-50" />
+          
+          <div className="space-y-6">
+            {paginatedActive.length === 0 ? (
+              <div className="ml-16 py-8 text-center bg-white rounded-[32px] border-2 border-dashed border-slate-100">
+                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Tidak ada agenda aktif</p>
+              </div>
+            ) : (
+              paginatedActive.map(m => renderMeetingCard(m))
+            )}
+
+            {totalActivePages > 1 && (
+              <div className="ml-16 flex items-center justify-between bg-white/50 backdrop-blur-sm p-2 rounded-2xl border border-slate-100">
+                <button onClick={() => setActivePage(p => Math.max(1, p - 1))} disabled={activePage === 1} className="p-1 disabled:opacity-20"><ChevronLeft size={16}/></button>
+                <span className="text-[8px] font-black">{activePage} / {totalActivePages}</span>
+                <button onClick={() => setActivePage(p => Math.min(totalActivePages, p + 1))} disabled={activePage === totalActivePages} className="p-1 disabled:opacity-20"><ChevronRight size={16}/></button>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* BAGIAN 2: SUDAH SELESAI */}
+        <section className="relative">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-sm font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+              <CheckCircle size={16} /> Riwayat Selesai
+            </h3>
+            <span className="text-[10px] font-bold bg-slate-100 text-slate-400 px-2 py-1 rounded-lg">
+              {completedMeetings.length} Riwayat
+            </span>
+          </div>
+
+          <div className="absolute left-12 top-10 bottom-0 w-0.5 bg-slate-100" />
+
+          <div className="space-y-6">
+            {paginatedCompleted.length === 0 ? (
+              <div className="ml-16 py-8 text-center bg-white rounded-[32px] border-2 border-dashed border-slate-100">
+                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Belum ada riwayat</p>
+              </div>
+            ) : (
+              paginatedCompleted.map(m => renderMeetingCard(m))
+            )}
+
+            {totalCompletedPages > 1 && (
+              <div className="ml-16 flex items-center justify-between bg-white/50 backdrop-blur-sm p-2 rounded-2xl border border-slate-100">
+                <button onClick={() => setCompletedPage(p => Math.max(1, p - 1))} disabled={completedPage === 1} className="p-1 disabled:opacity-20"><ChevronLeft size={16}/></button>
+                <span className="text-[8px] font-black">{completedPage} / {totalCompletedPages}</span>
+                <button onClick={() => setCompletedPage(p => Math.min(totalCompletedPages, p + 1))} disabled={completedPage === totalCompletedPages} className="p-1 disabled:opacity-20"><ChevronRight size={16}/></button>
+              </div>
+            )}
+          </div>
+        </section>
       </div>
 
-      {/* Timeline Hero */}
-      <div className="bg-slate-900 rounded-[32px] p-8 text-white shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl -mr-16 -mt-16"></div>
-        <h3 className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-6 flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></div>
-          Timeline Meeting
-        </h3>
-        <div className="space-y-6 max-h-64 overflow-y-auto no-scrollbar pr-2">
-          {timelineData.length === 0 ? (
-            <p className="text-slate-500 text-center py-4 italic text-sm">Belum ada meeting</p>
-          ) : (
-            timelineData.map((m, i) => (
-              <div key={m.id} className="relative pl-6">
-                {i < timelineData.length - 1 && (
-                  <div className="absolute left-[3px] top-6 bottom-[-24px] w-[1px] bg-slate-700" />
-                )}
-                <div className={`absolute left-0 top-1.5 w-[7px] h-[7px] rounded-full ring-4 ring-slate-900 ${m.completed ? 'bg-green-400' : 'bg-indigo-500'}`} />
-                
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex justify-between items-start">
-                    <span className="text-[10px] font-bold text-slate-400 bg-slate-800 px-2 py-0.5 rounded uppercase">
-                      {formatTime(m.startTime)}
-                    </span>
-                    <div className="flex gap-3">
-                      <button onClick={() => toggleComplete(m.id)} className={`${m.completed ? 'text-green-400' : 'text-slate-600'} hover:text-green-300 transition-colors`}>
-                        {m.completed ? <CheckCircle2 size={16} /> : <Circle size={16} />}
-                      </button>
-                      <button onClick={() => deleteMeeting(m.id)} className="text-slate-700 hover:text-red-400 transition-colors">
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </div>
-                  <h4 className={`font-bold text-sm ${m.completed ? 'text-slate-500 line-through' : ''}`}>{m.title}</h4>
-                  <div className="flex flex-wrap gap-1">
-                    {m.categoryIds.map(cid => {
-                      const cat = categories.find(c => c.id === cid);
-                      return cat ? (
-                        <div key={cid} className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: cat.color }}></div>
-                      ) : null;
-                    })}
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h3 className="font-bold text-slate-700">Terjadwal</h3>
-          <button 
-            onClick={() => setShowAddForm(true)}
-            className="flex items-center gap-1 bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 active:scale-95 transition-all"
-          >
-            <Plus size={18} /> Baru
-          </button>
-        </div>
-
-        <div className="space-y-3">
-          {meetings.map(m => (
-            <div key={m.id} className={`bg-white p-4 rounded-3xl shadow-sm border border-slate-50 flex items-center gap-4 transition-all ${m.completed ? 'opacity-50 grayscale' : 'hover:border-indigo-100'}`}>
-              <button onClick={() => toggleComplete(m.id)} className={`p-3 rounded-2xl transition-colors ${m.completed ? 'bg-green-50 text-green-600' : 'bg-indigo-50 text-indigo-500'}`}>
-                {m.completed ? <CheckCircle2 size={20} /> : <Clock size={20} />}
-              </button>
-              <div className="flex-1 overflow-hidden">
-                <p className={`font-bold text-slate-800 text-sm truncate ${m.completed ? 'line-through' : ''}`}>{m.title}</p>
-                <div className="flex items-center gap-2 mt-1">
-                  <p className="text-[10px] text-slate-400 font-bold uppercase">
-                    {new Date(m.startTime).toLocaleDateString()} • {formatTime(m.startTime)}
-                  </p>
-                  <div className="flex gap-1">
-                    {m.categoryIds.map(cid => {
-                      const cat = categories.find(c => c.id === cid);
-                      return cat ? (
-                        <span key={cid} className="text-[8px] font-bold uppercase px-1.5 py-0.5 rounded text-white" style={{ backgroundColor: cat.color }}>
-                          {cat.name}
-                        </span>
-                      ) : null;
-                    })}
-                  </div>
-                </div>
-              </div>
-              <div className={`text-[10px] font-bold px-3 py-1.5 rounded-xl ${m.completed ? 'bg-green-100 text-green-600' : 'bg-indigo-50 text-indigo-600'}`}>
-                {m.completed ? 'DONE' : 'SOON'}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
+      {/* Form Tambah Agenda */}
       {showAddForm && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-end justify-center">
-          <div className="bg-white w-full max-w-md rounded-t-[40px] p-8 animate-in slide-in-from-bottom duration-300 shadow-2xl">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-slate-800">Buat Meeting</h2>
-              <button onClick={() => setShowAddForm(false)} className="text-slate-400 p-2 hover:bg-slate-100 rounded-full transition-colors">✕</button>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-end justify-center px-4 pb-4">
+          <div className="bg-white w-full max-w-md rounded-[40px] p-8 animate-in slide-in-from-bottom duration-500 shadow-2xl">
+            <div className="w-12 h-1.5 bg-slate-100 rounded-full mx-auto mb-8" />
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-xl font-bold text-slate-800">Agenda Baru</h2>
+              <button onClick={() => setShowAddForm(false)} className="text-slate-400 p-2 bg-slate-50 rounded-full">✕</button>
             </div>
-
-            <form onSubmit={handleAddMeeting} className="space-y-5">
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Judul Agenda</label>
-                <input 
-                  type="text" 
-                  value={formData.title}
-                  onChange={e => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="Contoh: Brainstorming UI/UX"
-                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
-                />
+            
+            <form onSubmit={handleAddMeeting} className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-indigo-500 uppercase ml-2">Detail Agenda</label>
+                <input name="title" type="text" autoFocus placeholder="Nama meeting..." className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500/20" />
               </div>
-
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Waktu Mulai</label>
-                <input 
-                  type="datetime-local" 
-                  value={formData.startTime}
-                  onChange={e => setFormData({ ...formData, startTime: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
-                />
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-indigo-500 uppercase ml-2">Waktu Mulai</label>
+                <input name="startTime" type="datetime-local" className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 font-bold text-slate-800 outline-none" />
               </div>
-
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block">Pilih Kategori (Bisa banyak)</label>
-                <div className="flex flex-wrap gap-2">
-                  {categories.map(c => {
-                    const isSelected = formData.categoryIds.includes(c.id);
-                    return (
-                      <button
-                        key={c.id}
-                        type="button"
-                        onClick={() => toggleCategorySelection(c.id)}
-                        className={`px-3 py-2 rounded-xl text-[10px] font-bold transition-all flex items-center gap-2 border ${
-                          isSelected 
-                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-100' 
-                            : 'bg-white text-slate-500 border-slate-100 hover:border-indigo-300'
-                        }`}
-                      >
-                        <div className={`w-2 h-2 rounded-full ${isSelected ? 'bg-white' : ''}`} style={isSelected ? {} : { backgroundColor: c.color }} />
-                        {c.name}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Deskripsi Singkat</label>
-                <textarea 
-                  value={formData.description}
-                  onChange={e => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Catatan kecil untuk agenda ini..."
-                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none h-24 resize-none transition-all"
-                />
-              </div>
-
-              <button 
-                type="submit"
-                disabled={!formData.title || !formData.startTime}
-                className="w-full bg-indigo-600 text-white py-5 rounded-3xl font-bold shadow-xl shadow-indigo-100 hover:bg-indigo-700 active:scale-[0.98] transition-all mt-4 disabled:opacity-50"
-              >
-                Jadwalkan Sekarang
-              </button>
+              <button type="submit" className="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black text-sm shadow-xl active:scale-95 transition-all">SIMPAN AGENDA</button>
             </form>
           </div>
         </div>
