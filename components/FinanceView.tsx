@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { Plus, Trash2, TrendingUp, TrendingDown, X, ChevronLeft, ChevronRight, BarChart3, PieChart as PieIcon, LineChart } from 'lucide-react';
 import { 
@@ -5,13 +6,14 @@ import {
   PieChart, Pie, Cell, Legend,
   BarChart, Bar
 } from 'recharts';
-import { Transaction, FinanceCategory, TransactionType } from '../types';
+import { Transaction, FinanceCategory, TransactionType } from '../types.ts';
 
 interface FinanceViewProps {
   transactions: Transaction[];
   setTransactions: React.Dispatch<React.SetStateAction<Transaction[]>>;
   categories: FinanceCategory[];
   setCategories: React.Dispatch<React.SetStateAction<FinanceCategory[]>>;
+  itemsPerPage: number;
 }
 
 const formatIDR = (amount: number) => {
@@ -28,10 +30,8 @@ const formatNumericInput = (val: string) => {
   return new Intl.NumberFormat('id-ID').format(parseInt(digits));
 };
 
-const ITEMS_PER_PAGE = 5;
-
 const FinanceView: React.FC<FinanceViewProps> = ({ 
-  transactions, setTransactions, categories, setCategories 
+  transactions, setTransactions, categories, setCategories, itemsPerPage
 }) => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [showCatForm, setShowCatForm] = useState(false);
@@ -46,11 +46,11 @@ const FinanceView: React.FC<FinanceViewProps> = ({
   });
 
   useEffect(() => {
-    const maxPages = Math.ceil(transactions.length / ITEMS_PER_PAGE) || 1;
+    const maxPages = Math.ceil(transactions.length / itemsPerPage) || 1;
     if (currentPage > maxPages) {
       setCurrentPage(maxPages);
     }
-  }, [transactions.length, currentPage]);
+  }, [transactions.length, currentPage, itemsPerPage]);
 
   const totalBalance = useMemo(() => {
     return transactions.reduce((acc, t) => t.type === 'income' ? acc + t.amount : acc - t.amount, 0);
@@ -114,11 +114,11 @@ const FinanceView: React.FC<FinanceViewProps> = ({
     return values.sort((a, b) => a.date.localeCompare(b.date)).slice(-7);
   }, [transactions]);
 
-  const totalPages = Math.ceil(transactions.length / ITEMS_PER_PAGE) || 1;
+  const totalPages = Math.ceil(transactions.length / itemsPerPage) || 1;
   const paginatedTransactions = useMemo(() => {
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return transactions.slice(start, start + ITEMS_PER_PAGE);
-  }, [transactions, currentPage]);
+    const start = (currentPage - 1) * itemsPerPage;
+    return transactions.slice(start, start + itemsPerPage);
+  }, [transactions, currentPage, itemsPerPage]);
 
   const handleAddTransaction = (e: React.FormEvent) => {
     e.preventDefault();
@@ -150,7 +150,7 @@ const FinanceView: React.FC<FinanceViewProps> = ({
   };
 
   const deleteCategory = (id: string) => {
-    if (categories.length <= 1) return; // Sisakan minimal 1 kategori
+    if (categories.length <= 1) return;
     setCategories(prev => prev.filter(c => c.id !== id));
     setTransactions(prev => prev.map(t => t.categoryId === id ? { ...t, categoryId: categories.find(c => c.id !== id)?.id || '' } : t));
   };
@@ -181,7 +181,6 @@ const FinanceView: React.FC<FinanceViewProps> = ({
 
   return (
     <div className="p-6 space-y-8 animate-in fade-in duration-500 pb-24">
-      {/* Category Management Area */}
       <div className="space-y-3">
         <div className="flex justify-between items-center">
           <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Kategori Keuangan</h3>
@@ -226,7 +225,6 @@ const FinanceView: React.FC<FinanceViewProps> = ({
         </div>
       </div>
 
-      {/* Saldo Utama */}
       <div className="bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-[32px] p-6 text-white shadow-xl shadow-indigo-100">
         <p className="text-indigo-100 text-xs font-bold uppercase tracking-widest opacity-70">Total Saldo</p>
         <h2 className="text-3xl font-black mt-1 tracking-tight">{formatIDR(totalBalance)}</h2>
@@ -248,7 +246,6 @@ const FinanceView: React.FC<FinanceViewProps> = ({
         </div>
       </div>
 
-      {/* 1. Grafik Trend (Area) */}
       <div className="space-y-4">
         <div className="flex items-center gap-2">
           <LineChart size={18} className="text-indigo-500" />
@@ -273,7 +270,6 @@ const FinanceView: React.FC<FinanceViewProps> = ({
         </div>
       </div>
 
-      {/* 2. Grafik Proporsi (Pie) */}
       <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 relative overflow-hidden">
         <div className="flex items-center gap-2 mb-2">
           <PieIcon size={18} className="text-pink-500" />
@@ -309,7 +305,6 @@ const FinanceView: React.FC<FinanceViewProps> = ({
         </div>
       </div>
 
-      {/* 3. Grafik Aktivitas (Bar) */}
       <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100">
         <div className="flex items-center gap-2 mb-4">
           <BarChart3 size={18} className="text-green-500" />
@@ -328,7 +323,6 @@ const FinanceView: React.FC<FinanceViewProps> = ({
         </div>
       </div>
 
-      {/* 4. Daftar Transaksi (Paginasi 5 Item) */}
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h3 className="font-bold text-slate-700">Riwayat Transaksi</h3>
@@ -382,7 +376,6 @@ const FinanceView: React.FC<FinanceViewProps> = ({
         </div>
       </div>
 
-      {/* Modal Add */}
       {showAddForm && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-end justify-center">
           <div className="bg-white w-full max-w-md rounded-t-[40px] p-8 animate-in slide-in-from-bottom duration-300 shadow-2xl">
