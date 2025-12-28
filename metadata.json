@@ -1,6 +1,8 @@
+
 {
-  "name": "OmniPro: Finance, Meetings & Tasks",
-  "description": "A comprehensive productivity app featuring financial tracking with advanced charts, meeting timeline management, and multi-category task organization.",
+  "name": "OmniPro Suite",
+  "short_name": "OmniPro",
+  "description": "Pusat kendali produktivitas All-in-One: Kelola keuangan cerdas, timeline rapat profesional, dan sistem manajemen tugas dalam satu aplikasi adaptif.",
   "requestFramePermissions": [
     "camera",
     "microphone"

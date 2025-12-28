@@ -13,7 +13,8 @@ import {
   Download,
   Upload,
   Layers,
-  AlertTriangle
+  AlertTriangle,
+  Info
 } from 'lucide-react';
 import FinanceView from './components/FinanceView.tsx';
 import MeetingsView from './components/MeetingsView.tsx';
@@ -147,7 +148,7 @@ export default function App() {
   ];
 
   return (
-    <div className="flex flex-col md:flex-row h-screen w-full bg-slate-50 overflow-hidden">
+    <div className="flex flex-col md:flex-row h-[100dvh] w-full bg-slate-50 overflow-hidden">
       
       {/* Sidebar - Only Desktop */}
       <aside className={`hidden md:flex flex-col w-64 bg-white border-r border-slate-200 transition-all duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full w-0 overflow-hidden'}`}>
@@ -212,7 +213,7 @@ export default function App() {
 
         {/* Dynamic View Scroll Area */}
         <div className="flex-1 overflow-y-auto no-scrollbar bg-slate-50/50">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-6xl mx-auto h-full">
             {activeTab === 'finance' && (
               <FinanceView 
                 transactions={transactions} setTransactions={setTransactions}
@@ -240,8 +241,8 @@ export default function App() {
           </div>
         </div>
 
-        {/* Bottom Nav - Only Mobile */}
-        <nav className="md:hidden bg-white/90 backdrop-blur-xl border-t border-slate-100 px-6 py-4 flex justify-between items-center z-50">
+        {/* Bottom Nav - Only Mobile - Fixed with Safe Area Bottom */}
+        <nav className="md:hidden bg-white/90 backdrop-blur-xl border-t border-slate-100 px-6 pt-3 flex justify-between items-center z-50 shadow-[0_-10px_20px_rgba(0,0,0,0.02)]" style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}>
           {navItems.map((item) => (
             <button 
               key={item.id}
@@ -261,7 +262,7 @@ export default function App() {
           {/* Overlay click to close */}
           <div className="absolute inset-0" onClick={() => setShowSettings(false)}></div>
           
-          <div className="bg-white rounded-[40px] w-full max-w-lg max-h-[85vh] overflow-y-auto no-scrollbar p-6 md:p-10 animate-in zoom-in-95 duration-200 relative shadow-2xl">
+          <div className="bg-white rounded-[40px] w-full max-w-lg max-h-[90vh] overflow-y-auto no-scrollbar p-6 md:p-10 animate-in zoom-in-95 duration-200 relative shadow-2xl">
             <button 
               onClick={() => setShowSettings(false)} 
               className="absolute right-6 top-6 text-slate-300 p-2 hover:bg-slate-50 rounded-full transition-colors z-10"
@@ -277,6 +278,21 @@ export default function App() {
                 <div>
                   <h2 className="text-2xl font-black text-slate-800 tracking-tight">Settings</h2>
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Konfigurasi Aplikasi</p>
+                </div>
+              </div>
+
+              {/* About OmniPro Section */}
+              <div className="bg-gradient-to-br from-slate-50 to-indigo-50/30 p-6 rounded-[32px] border border-slate-100 space-y-3">
+                <div className="flex items-center gap-2 text-indigo-600">
+                  <Info size={18} />
+                  <h3 className="text-xs font-black uppercase tracking-widest">About OmniPro</h3>
+                </div>
+                <p className="text-[11px] leading-relaxed text-slate-500 font-medium italic">
+                  "OmniPro adalah pusat kendali produktivitas All-in-One: Kelola keuangan cerdas, timeline rapat profesional, dan sistem manajemen tugas dalam satu dashboard adaptif."
+                </p>
+                <div className="pt-2 flex justify-between items-center border-t border-slate-100">
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Version 2.5.0 Stable</span>
+                  <span className="text-[9px] font-black text-indigo-400 uppercase tracking-tighter">Powered by OmniEngine</span>
                 </div>
               </div>
 
@@ -364,4 +380,3 @@ export default function App() {
     </div>
   );
 }
-  

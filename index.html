@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -23,7 +24,8 @@
       background-color: #f1f5f9;
       margin: 0;
       padding: 0;
-      overflow: hidden; /* Mencegah scroll body luar */
+      overflow: hidden;
+      height: 100dvh; /* Dynamic Viewport Height */
     }
     .no-scrollbar::-webkit-scrollbar {
       display: none;
@@ -36,15 +38,9 @@
       user-select: none;
     }
     #root {
-      height: 100vh;
+      height: 100dvh;
       display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-    @media (max-width: 640px) {
-      #root {
-        align-items: flex-start;
-      }
+      width: 100%;
     }
   </style>
 
