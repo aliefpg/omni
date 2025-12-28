@@ -45,3 +45,11 @@ export interface Task {
   createdAt: string;
   dueDate?: string; // ISO string for auto-complete check
 }
+
+export interface ExternalLink {
+  id: string;
+  name: string;
+  description: string;
+  url: string;
+  icon?: string;
+}

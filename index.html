@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>OmniPro Productivity Suite</title>
+  <title>OmniPro Suite</title>
   
   <!-- PWA & Mobile Meta Tags -->
   <link rel="manifest" href="manifest.json">
@@ -20,10 +20,10 @@
     body {
       font-family: 'Inter', sans-serif;
       -webkit-tap-highlight-color: transparent;
-      background-color: #f8fafc;
-      overscroll-behavior-y: contain;
+      background-color: #f1f5f9;
       margin: 0;
       padding: 0;
+      overflow: hidden; /* Mencegah scroll body luar */
     }
     .no-scrollbar::-webkit-scrollbar {
       display: none;
@@ -37,7 +37,14 @@
     }
     #root {
       height: 100vh;
-      height: -webkit-fill-available;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    @media (max-width: 640px) {
+      #root {
+        align-items: flex-start;
+      }
     }
   </style>
 
@@ -55,7 +62,7 @@
 }
 </script>
 </head>
-<body class="bg-slate-50 text-slate-900">
+<body class="bg-slate-100">
   <div id="root"></div>
   
   <script type="module" src="index.tsx"></script>

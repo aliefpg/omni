@@ -105,9 +105,10 @@ const MeetingsView: React.FC<MeetingsViewProps> = ({ meetings, setMeetings, cate
         </div>
 
         <div className={`flex-1 p-5 rounded-[32px] border transition-all duration-300 min-w-0 ${m.completed ? 'bg-slate-50 border-slate-100 opacity-60' : isReallyMissed ? 'bg-red-50/30 border-red-100' : isRunning ? 'bg-white border-indigo-200 shadow-xl shadow-indigo-100/30' : 'bg-white border-slate-50 shadow-sm'}`}>
-          <div className="flex justify-between items-start mb-3 gap-3">
+          <div className="flex justify-between items-start gap-3">
             <div className="flex-1 min-w-0">
-              <h4 className={`font-bold text-[15px] leading-tight whitespace-normal break-words ${m.completed ? 'line-through text-slate-400' : 'text-slate-800'}`}>
+              {/* Judul sekarang dipaksa blok dan wrap */}
+              <h4 className={`block w-full font-bold text-[15px] leading-tight whitespace-normal break-words overflow-visible ${m.completed ? 'line-through text-slate-400' : 'text-slate-800'}`}>
                 {m.title}
               </h4>
               <div className="flex flex-wrap items-center gap-1.5 mt-3">

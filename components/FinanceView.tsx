@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Plus, Trash2, TrendingUp, TrendingDown, X, ChevronLeft, ChevronRight, BarChart3, PieChart as PieIcon, LineChart } from 'lucide-react';
+import { Plus, Trash2, X, ChevronLeft, ChevronRight, BarChart3, PieChart as PieIcon, LineChart } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
@@ -124,7 +124,7 @@ const FinanceView: React.FC<FinanceViewProps> = ({
     e.preventDefault();
     if (!formData.amount || !formData.categoryId) return;
     const newTransaction: Transaction = {
-      id: crypto.randomUUID(),
+      id: Math.random().toString(36).substr(2, 9),
       amount: parseFloat(formData.amount),
       type: formData.type,
       categoryId: formData.categoryId,
@@ -141,7 +141,7 @@ const FinanceView: React.FC<FinanceViewProps> = ({
     if (!newCatName.trim()) return;
     const colors = ['#ef4444', '#3b82f6', '#a855f7', '#f59e0b', '#10b981', '#ec4899', '#6366f1'];
     const newCat: FinanceCategory = {
-      id: crypto.randomUUID(),
+      id: Math.random().toString(36).substr(2, 9),
       name: newCatName.trim(),
       color: colors[Math.floor(Math.random() * colors.length)]
     };
@@ -180,194 +180,180 @@ const FinanceView: React.FC<FinanceViewProps> = ({
   };
 
   return (
-    <div className="p-6 space-y-8 animate-in fade-in duration-500 pb-24">
-      <div className="space-y-3">
-        <div className="flex justify-between items-center">
-          <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Kategori Keuangan</h3>
-          <button 
-            onClick={() => setShowCatForm(!showCatForm)}
-            className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg hover:bg-indigo-100 transition-colors"
-          >
-            {showCatForm ? 'Selesai' : 'Kelola'}
-          </button>
+    <div className="p-6 md:p-10 space-y-10 animate-in fade-in duration-500 pb-32 max-w-6xl mx-auto">
+      
+      <div className="flex flex-col md:flex-row gap-8">
+        {/* Balance Card */}
+        <div className="flex-1 bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-[40px] p-8 text-white shadow-xl shadow-indigo-100 flex flex-col justify-between">
+          <div>
+            <p className="text-indigo-100 text-xs font-bold uppercase tracking-widest opacity-70">Total Saldo</p>
+            <h2 className="text-4xl md:text-5xl font-black mt-2 tracking-tighter">{formatIDR(totalBalance)}</h2>
+          </div>
+          <div className="flex gap-4 mt-10">
+            <div className="flex-1 bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
+              <p className="text-[10px] font-black uppercase text-indigo-200 mb-1">Pemasukan</p>
+              <p className="text-lg font-bold text-white">{formatIDR(transactions.filter(t => t.type === 'income').reduce((a, b) => a + b.amount, 0))}</p>
+            </div>
+            <div className="flex-1 bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
+              <p className="text-[10px] font-black uppercase text-indigo-200 mb-1">Pengeluaran</p>
+              <p className="text-lg font-bold text-white">{formatIDR(transactions.filter(t => t.type === 'expense').reduce((a, b) => a + b.amount, 0))}</p>
+            </div>
+          </div>
         </div>
-        
-        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 min-h-[40px] items-center">
-          {categories.map(c => (
-            <div 
-              key={c.id} 
-              className="flex-shrink-0 bg-white px-3 py-1.5 rounded-xl shadow-sm border border-slate-100 flex items-center gap-2 group transition-all"
+
+        {/* Categories Section */}
+        <div className="md:w-80 space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Kategori</h3>
+            <button 
+              onClick={() => setShowCatForm(!showCatForm)}
+              className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-xl hover:bg-indigo-100 transition-colors"
             >
-              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: c.color }} />
-              <span className="text-xs font-bold text-slate-700">{c.name}</span>
-              {showCatForm && (
-                <button onClick={() => deleteCategory(c.id)} className="text-slate-300 hover:text-red-500 ml-1 transition-colors">
-                  <X size={14} />
-                </button>
-              )}
-            </div>
-          ))}
-          {showCatForm && (
-            <div className="flex-shrink-0 flex gap-2 ml-2">
-              <input 
-                type="text" 
-                value={newCatName}
-                onChange={e => setNewCatName(e.target.value)}
-                placeholder="Tambah..."
-                className="text-xs bg-white border border-slate-200 rounded-xl px-3 py-1.5 outline-none focus:border-indigo-500 w-24 shadow-sm"
-                onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
-              />
-              <button onClick={handleAddCategory} className="bg-indigo-600 text-white p-1.5 rounded-xl shadow-md active:scale-95 transition-transform">
-                <Plus size={16} />
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-[32px] p-6 text-white shadow-xl shadow-indigo-100">
-        <p className="text-indigo-100 text-xs font-bold uppercase tracking-widest opacity-70">Total Saldo</p>
-        <h2 className="text-3xl font-black mt-1 tracking-tight">{formatIDR(totalBalance)}</h2>
-        <div className="flex gap-4 mt-6">
-          <div className="flex-1 bg-white/20 backdrop-blur-md rounded-2xl p-3 border border-white/20">
-            <div className="flex items-center gap-2 mb-1">
-               <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
-               <p className="text-[10px] font-bold uppercase text-indigo-50">Masuk</p>
-            </div>
-            <p className="text-sm font-bold text-white tracking-wide">{formatIDR(transactions.filter(t => t.type === 'income').reduce((a, b) => a + b.amount, 0))}</p>
+              {showCatForm ? 'Selesai' : 'Edit'}
+            </button>
           </div>
-          <div className="flex-1 bg-white/20 backdrop-blur-md rounded-2xl p-3 border border-white/20">
-            <div className="flex items-center gap-2 mb-1">
-               <div className="w-1.5 h-1.5 rounded-full bg-red-400"></div>
-               <p className="text-[10px] font-bold uppercase text-indigo-50">Keluar</p>
-            </div>
-            <p className="text-sm font-bold text-white tracking-wide">{formatIDR(transactions.filter(t => t.type === 'expense').reduce((a, b) => a + b.amount, 0))}</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <LineChart size={18} className="text-indigo-500" />
-          <h3 className="font-bold text-slate-700">Trend Akumulasi Saldo</h3>
-        </div>
-        <div className="h-52 w-full bg-white rounded-3xl p-4 shadow-sm border border-slate-100">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={waveData}>
-              <defs>
-                <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-              <XAxis dataKey="date" hide />
-              <YAxis hide domain={['auto', 'auto']} />
-              <Tooltip formatter={(val: number) => [formatIDR(val), 'Saldo']} />
-              <Area type="monotone" dataKey="balance" stroke="#6366f1" strokeWidth={4} fill="url(#colorBalance)" />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 relative overflow-hidden">
-        <div className="flex items-center gap-2 mb-2">
-          <PieIcon size={18} className="text-pink-500" />
-          <h3 className="font-bold text-slate-700 text-sm">Alokasi Pengeluaran</h3>
-        </div>
-        <div className="h-64 w-full relative">
-          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-8">
-            <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Total</p>
-            <p className="text-xs font-black text-slate-800">{formatIDR(totalPieExpense)}</p>
-          </div>
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie 
-                data={pieData} 
-                cx="50%" 
-                cy="50%" 
-                innerRadius={40} 
-                outerRadius={60} 
-                paddingAngle={5} 
-                dataKey="value" 
-                animationDuration={1000}
-                labelLine={true}
-                label={renderCustomizedLabel}
+          <div className="flex flex-wrap md:flex-col gap-2 max-h-[220px] overflow-y-auto no-scrollbar">
+            {categories.map(c => (
+              <div 
+                key={c.id} 
+                className="bg-white px-4 py-3 rounded-2xl shadow-sm border border-slate-50 flex items-center justify-between group"
               >
-                {pieData.map((entry, index) => <Cell key={index} fill={entry.color} stroke="#fff" strokeWidth={2} />)}
-              </Pie>
-              <Tooltip formatter={(val: number) => formatIDR(val)} />
-              <Legend verticalAlign="bottom" height={36} formatter={(value) => {
-                return <span className="text-[9px] text-slate-500 font-bold uppercase tracking-tighter">{value}</span>;
-              }} />
-            </PieChart>
-          </ResponsiveContainer>
+                <div className="flex items-center gap-3">
+                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: c.color }} />
+                  <span className="text-xs font-black text-slate-700 uppercase tracking-tight">{c.name}</span>
+                </div>
+                {showCatForm && (
+                  <button onClick={() => deleteCategory(c.id)} className="text-slate-300 hover:text-red-500 transition-colors">
+                    <X size={16} />
+                  </button>
+                )}
+              </div>
+            ))}
+            {showCatForm && (
+              <div className="flex gap-2 pt-2">
+                <input 
+                  type="text" 
+                  value={newCatName}
+                  onChange={e => setNewCatName(e.target.value)}
+                  placeholder="Baru..."
+                  className="flex-1 text-xs bg-white border border-slate-100 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-50"
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
+                />
+                <button onClick={handleAddCategory} className="bg-indigo-600 text-white p-2 rounded-xl shadow-lg active:scale-95 transition-transform">
+                  <Plus size={20} />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100">
-        <div className="flex items-center gap-2 mb-4">
-          <BarChart3 size={18} className="text-green-500" />
-          <h3 className="font-bold text-slate-700 text-sm">Aktivitas Mingguan</h3>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Accumulation Chart */}
+        <div className="bg-white rounded-[40px] p-8 shadow-sm border border-slate-50 space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl"><LineChart size={20} /></div>
+            <h3 className="font-black text-slate-800 uppercase text-xs tracking-widest">Trend Akumulasi Saldo</h3>
+          </div>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={waveData}>
+                <defs>
+                  <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="date" hide />
+                <YAxis hide domain={['auto', 'auto']} />
+                <Tooltip formatter={(val: number) => [formatIDR(val), 'Saldo']} />
+                <Area type="monotone" dataKey="balance" stroke="#6366f1" strokeWidth={4} fill="url(#colorBalance)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
         </div>
-        <div className="h-48 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={barData}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-              <XAxis dataKey="date" hide />
-              <Tooltip formatter={(val: number) => formatIDR(val)} />
-              <Bar dataKey="income" fill="#10b981" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="expense" fill="#ef4444" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+
+        {/* Allocation Pie Chart */}
+        <div className="bg-white rounded-[40px] p-8 shadow-sm border border-slate-50 space-y-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-pink-50 text-pink-500 rounded-xl"><PieIcon size={20} /></div>
+            <h3 className="font-black text-slate-800 uppercase text-xs tracking-widest">Alokasi Pengeluaran</h3>
+          </div>
+          <div className="h-64 w-full relative">
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-8">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Out</p>
+              <p className="text-sm font-black text-slate-800">{formatIDR(totalPieExpense)}</p>
+            </div>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie 
+                  data={pieData} 
+                  cx="50%" 
+                  cy="50%" 
+                  innerRadius={55} 
+                  outerRadius={75} 
+                  paddingAngle={5} 
+                  dataKey="value" 
+                  animationDuration={1000}
+                  label={renderCustomizedLabel}
+                >
+                  {pieData.map((entry, index) => <Cell key={index} fill={entry.color} stroke="#fff" strokeWidth={3} />)}
+                </Pie>
+                <Tooltip formatter={(val: number) => formatIDR(val)} />
+                <Legend verticalAlign="bottom" height={36} formatter={(value) => <span className="text-[10px] font-bold text-slate-500 uppercase">{value}</span>} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
 
-      <div className="space-y-4">
+      {/* Transaction History */}
+      <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <h3 className="font-bold text-slate-700">Riwayat Transaksi</h3>
-          <button onClick={() => setShowAddForm(true)} className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-black shadow-lg shadow-indigo-100 active:scale-95 transition-all">
-            + CATAT
+          <h3 className="font-black text-slate-800 uppercase text-sm tracking-widest">Riwayat Transaksi</h3>
+          <button onClick={() => setShowAddForm(true)} className="bg-indigo-600 text-white px-8 py-3 rounded-2xl text-[10px] font-black shadow-lg shadow-indigo-100 active:scale-95 transition-all uppercase tracking-widest">
+            + Catat Baru
           </button>
         </div>
 
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {transactions.length === 0 ? (
-            <div className="text-center py-8 text-slate-400 bg-white rounded-3xl border-2 border-dashed border-slate-100 text-sm italic">Belum ada transaksi</div>
+            <div className="col-span-full text-center py-20 text-slate-400 bg-white rounded-[40px] border-2 border-dashed border-slate-100 text-xs font-bold uppercase">Belum ada transaksi</div>
           ) : (
             <>
               {paginatedTransactions.map(t => {
                 const cat = categories.find(c => c.id === t.categoryId);
                 return (
-                  <div key={t.id} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-50 flex justify-between items-center group">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-sm" style={{ backgroundColor: cat?.color || '#cbd5e1' }}>
+                  <div key={t.id} className="bg-white p-5 rounded-3xl shadow-sm border border-slate-50 flex justify-between items-center group hover:border-indigo-100 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-bold text-lg shadow-sm" style={{ backgroundColor: cat?.color || '#cbd5e1' }}>
                         {cat?.name.charAt(0) || '?'}
                       </div>
                       <div>
-                        <p className="font-bold text-slate-800 text-sm">{cat?.name || 'Lainnya'}</p>
-                        <p className="text-[10px] text-slate-400 font-medium">{t.date} • {t.note || 'Tanpa Catatan'}</p>
+                        <p className="font-black text-slate-800 text-sm uppercase tracking-tight">{cat?.name || 'Lainnya'}</p>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase">{t.date} • {t.note || 'Cash'}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <p className={`font-bold text-sm ${t.type === 'income' ? 'text-green-500' : 'text-slate-700'}`}>
+                    <div className="flex items-center gap-4">
+                      <p className={`font-black text-sm ${t.type === 'income' ? 'text-emerald-500' : 'text-slate-700'}`}>
                         {t.type === 'income' ? '+' : '-'}{formatIDR(t.amount)}
                       </p>
                       <button onClick={() => deleteTransaction(t.id)} className="text-slate-200 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Trash2 size={16} />
+                        <Trash2 size={18} />
                       </button>
                     </div>
                   </div>
                 );
               })}
               {totalPages > 1 && (
-                <div className="flex items-center justify-between px-2 pt-2">
-                  <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="p-2 bg-white rounded-xl shadow-sm border border-slate-100 disabled:opacity-30">
-                    <ChevronLeft size={18} />
+                <div className="col-span-full flex items-center justify-between px-4 pt-4">
+                  <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="p-3 bg-white rounded-2xl shadow-sm border border-slate-100 disabled:opacity-30">
+                    <ChevronLeft size={20} />
                   </button>
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{currentPage} / {totalPages}</span>
-                  <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="p-2 bg-white rounded-xl shadow-sm border border-slate-100 disabled:opacity-30">
-                    <ChevronRight size={18} />
+                  <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="p-3 bg-white rounded-2xl shadow-sm border border-slate-100 disabled:opacity-30">
+                    <ChevronRight size={20} />
                   </button>
                 </div>
               )}
@@ -377,29 +363,38 @@ const FinanceView: React.FC<FinanceViewProps> = ({
       </div>
 
       {showAddForm && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-end justify-center">
-          <div className="bg-white w-full max-w-md rounded-t-[40px] p-8 animate-in slide-in-from-bottom duration-300 shadow-2xl">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-slate-800">Tambah Catatan</h2>
-              <button onClick={() => setShowAddForm(false)} className="text-slate-400 p-2 hover:bg-slate-100 rounded-full transition-colors">✕</button>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[200] flex items-end md:items-center justify-center p-0 md:p-6">
+          <div className="bg-white w-full max-w-lg rounded-t-[44px] md:rounded-[44px] p-8 md:p-12 animate-in zoom-in-95 slide-in-from-bottom duration-300 shadow-2xl">
+            <div className="flex justify-between items-center mb-10">
+              <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Catat Keuangan</h2>
+              <button onClick={() => setShowAddForm(false)} className="text-slate-400 p-3 bg-slate-50 rounded-2xl">✕</button>
             </div>
-            <form onSubmit={handleAddTransaction} className="space-y-5">
-              <div className="flex bg-slate-100 p-1.5 rounded-2xl">
-                <button type="button" onClick={() => setFormData({ ...formData, type: 'expense' })} className={`flex-1 py-3 rounded-xl text-sm font-bold ${formData.type === 'expense' ? 'bg-white text-red-500 shadow-md' : 'text-slate-500'}`}>Keluar</button>
-                <button type="button" onClick={() => setFormData({ ...formData, type: 'income' })} className={`flex-1 py-3 rounded-xl text-sm font-bold ${formData.type === 'income' ? 'bg-white text-green-600 shadow-md' : 'text-slate-500'}`}>Masuk</button>
+            <form onSubmit={handleAddTransaction} className="space-y-6">
+              <div className="flex bg-slate-100 p-2 rounded-2xl">
+                <button type="button" onClick={() => setFormData({ ...formData, type: 'expense' })} className={`flex-1 py-4 rounded-xl text-xs font-black uppercase tracking-widest ${formData.type === 'expense' ? 'bg-white text-red-500 shadow-lg' : 'text-slate-500'}`}>Keluar</button>
+                <button type="button" onClick={() => setFormData({ ...formData, type: 'income' })} className={`flex-1 py-4 rounded-xl text-xs font-black uppercase tracking-widest ${formData.type === 'income' ? 'bg-white text-emerald-600 shadow-lg' : 'text-slate-500'}`}>Masuk</button>
               </div>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">Rp</span>
-                <input type="text" inputMode="numeric" autoFocus value={formatNumericInput(formData.amount)} onChange={e => setFormData({ ...formData, amount: e.target.value.replace(/\D/g, '') })} placeholder="0" className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 pl-12 text-2xl font-bold focus:ring-2 focus:ring-indigo-500 outline-none" />
+                <span className="absolute left-6 top-1/2 -translate-y-1/2 font-black text-slate-300 text-xl tracking-tighter">Rp</span>
+                <input type="text" inputMode="numeric" autoFocus value={formatNumericInput(formData.amount)} onChange={e => setFormData({ ...formData, amount: e.target.value.replace(/\D/g, '') })} placeholder="0" className="w-full bg-slate-50 border border-slate-100 rounded-3xl p-6 pl-16 text-3xl font-black focus:ring-4 focus:ring-indigo-50 outline-none transition-all" />
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <select value={formData.categoryId} onChange={e => setFormData({ ...formData, categoryId: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-sm font-bold outline-none">
-                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-                <input type="date" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-sm font-bold outline-none" />
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-indigo-500 uppercase ml-2 tracking-widest">Kategori</label>
+                  <select value={formData.categoryId} onChange={e => setFormData({ ...formData, categoryId: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-bold outline-none">
+                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-indigo-500 uppercase ml-2 tracking-widest">Tanggal</label>
+                  <input type="date" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-bold outline-none" />
+                </div>
               </div>
-              <input type="text" placeholder="Catatan (opsional)" value={formData.note} onChange={e => setFormData({...formData, note: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-sm font-bold outline-none" />
-              <button type="submit" className="w-full bg-indigo-600 text-white py-5 rounded-3xl font-bold shadow-xl shadow-indigo-100 hover:bg-indigo-700 active:scale-95 transition-all">SIMPAN</button>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-indigo-500 uppercase ml-2 tracking-widest">Catatan</label>
+                <input type="text" placeholder="Beli apa?" value={formData.note} onChange={e => setFormData({...formData, note: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-sm font-bold outline-none" />
+              </div>
+              <button type="submit" className="w-full bg-indigo-600 text-white py-6 rounded-[32px] font-black text-sm shadow-xl shadow-indigo-100 active:scale-95 transition-all uppercase tracking-widest mt-4">SIMPAN DATA</button>
             </form>
           </div>
         </div>

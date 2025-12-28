@@ -1,22 +1,25 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Wallet, 
   Calendar, 
   CheckSquare, 
   Settings,
-  Download,
-  X,
-  Smartphone,
-  Upload,
   Database,
   Trash2,
-  ListOrdered
+  LayoutGrid,
+  Menu,
+  X,
+  Download,
+  Upload,
+  Layers,
+  AlertTriangle
 } from 'lucide-react';
 import FinanceView from './components/FinanceView.tsx';
 import MeetingsView from './components/MeetingsView.tsx';
 import TasksView from './components/TasksView.tsx';
-import { Transaction, Meeting, Task, FinanceCategory, TaskCategory, MeetingCategory } from './types.ts';
+import PortalView from './components/PortalView.tsx';
+import { Transaction, Meeting, Task, FinanceCategory, TaskCategory, MeetingCategory, ExternalLink } from './types.ts';
 
 const INITIAL_FINANCE_CATEGORIES: FinanceCategory[] = [
   { id: '1', name: 'Makan', color: '#ef4444' },
@@ -37,18 +40,26 @@ const INITIAL_MEETING_CATEGORIES: MeetingCategory[] = [
   { id: 'm3', name: 'Internal', color: '#94a3b8' },
 ];
 
+const DEFAULT_PORTAL_LINKS: ExternalLink[] = [
+  {
+    id: 'p1',
+    name: 'Dashboard Analytics',
+    description: 'Monitor performa bisnis dan visualisasi data real-time.',
+    url: 'https://example.com/analytics'
+  }
+];
+
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'finance' | 'meetings' | 'tasks'>('finance');
-  const [showInstallGuide, setShowInstallGuide] = useState(false);
+  const [activeTab, setActiveTab] = useState<'finance' | 'meetings' | 'tasks' | 'portal'>('finance');
   const [showSettings, setShowSettings] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // App Config
   const [itemsPerPage, setItemsPerPage] = useState<number>(() => {
     const saved = localStorage.getItem('omni_items_per_page');
-    return saved ? parseInt(saved) : 5;
+    return saved ? parseInt(saved) : 10;
   });
 
-  // Data States
   const [transactions, setTransactions] = useState<Transaction[]>(() => {
     const saved = localStorage.getItem('omni_transactions');
     return saved ? JSON.parse(saved) : [];
@@ -73,8 +84,11 @@ export default function App() {
     const saved = localStorage.getItem('omni_t_categories');
     return saved ? JSON.parse(saved) : INITIAL_TASK_CATEGORIES;
   });
+  const [portalLinks, setPortalLinks] = useState<ExternalLink[]>(() => {
+    const saved = localStorage.getItem('omni_portal_links');
+    return saved ? JSON.parse(saved) : DEFAULT_PORTAL_LINKS;
+  });
 
-  // Sync to LocalStorage
   useEffect(() => {
     localStorage.setItem('omni_transactions', JSON.stringify(transactions));
     localStorage.setItem('omni_f_categories', JSON.stringify(financeCategories));
@@ -82,149 +96,272 @@ export default function App() {
     localStorage.setItem('omni_m_categories', JSON.stringify(meetingCategories));
     localStorage.setItem('omni_tasks', JSON.stringify(tasks));
     localStorage.setItem('omni_t_categories', JSON.stringify(taskCategories));
+    localStorage.setItem('omni_portal_links', JSON.stringify(portalLinks));
     localStorage.setItem('omni_items_per_page', itemsPerPage.toString());
-  }, [transactions, financeCategories, meetings, meetingCategories, tasks, taskCategories, itemsPerPage]);
+  }, [transactions, financeCategories, meetings, meetingCategories, tasks, taskCategories, portalLinks, itemsPerPage]);
 
-  const handleExportData = () => {
+  const exportData = () => {
     const fullData = {
-      transactions, financeCategories, meetings, meetingCategories, tasks, taskCategories,
-      itemsPerPage, version: "1.2",
-      exportDate: new Date().toISOString()
+      transactions, financeCategories, meetings, meetingCategories, tasks, taskCategories, portalLinks,
+      version: '2.0',
+      exportedAt: new Date().toISOString()
     };
     const blob = new Blob([JSON.stringify(fullData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `omnipro_backup_${new Date().toISOString().slice(0,10)}.json`;
-    link.click();
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `OmniPro_Backup_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
-  const handleImportData = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const importData = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
         const data = JSON.parse(event.target?.result as string);
-        if (confirm('Import data akan menimpa data saat ini. Lanjutkan?')) {
-          if (data.transactions) setTransactions(data.transactions);
-          if (data.meetings) setMeetings(data.meetings);
-          if (data.tasks) setTasks(data.tasks);
-          if (data.itemsPerPage) setItemsPerPage(data.itemsPerPage);
-          alert('Berhasil!');
-          setShowSettings(false);
-        }
-      } catch (err) { alert('File tidak valid!'); }
+        if (data.transactions) setTransactions(data.transactions);
+        if (data.meetings) setMeetings(data.meetings);
+        if (data.tasks) setTasks(data.tasks);
+        if (data.portalLinks) setPortalLinks(data.portalLinks);
+        if (data.financeCategories) setFinanceCategories(data.financeCategories);
+        if (data.taskCategories) setTaskCategories(data.taskCategories);
+        if (data.meetingCategories) setMeetingCategories(data.meetingCategories);
+        alert('Data berhasil diimpor!');
+        setShowSettings(false);
+      } catch (err) {
+        alert('Format file tidak valid!');
+      }
     };
     reader.readAsText(file);
   };
 
-  return (
-    <div className="flex flex-col h-screen max-w-md mx-auto bg-slate-50 shadow-2xl overflow-hidden relative border-x border-slate-200">
-      <header className="px-6 py-4 bg-white border-b border-slate-100 flex justify-between items-center sticky top-0 z-40">
-        <div>
-          <h1 className="text-xl font-bold text-slate-800">
-            {activeTab === 'finance' && 'Keuangan'}
-            {activeTab === 'meetings' && 'Meeting'}
-            {activeTab === 'tasks' && 'Tugas'}
-          </h1>
-          <p className="text-[10px] text-slate-400 font-bold tracking-[0.2em] uppercase">OMNIPRO SUITE</p>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={() => setShowInstallGuide(true)} className="p-2 bg-indigo-50 rounded-full text-indigo-600"><Download size={18} /></button>
-          <button onClick={() => setShowSettings(true)} className="p-2 bg-slate-50 rounded-full text-slate-400"><Settings size={18} /></button>
-        </div>
-      </header>
+  const navItems = [
+    { id: 'finance', label: 'Finance', icon: <Wallet size={20} /> },
+    { id: 'meetings', label: 'Meeting', icon: <Calendar size={20} /> },
+    { id: 'tasks', label: 'Tugas', icon: <CheckSquare size={20} /> },
+    { id: 'portal', label: 'Portal', icon: <LayoutGrid size={20} /> },
+  ];
 
-      <main className="flex-1 overflow-y-auto no-scrollbar pb-24">
-        {activeTab === 'finance' && (
-          <FinanceView 
-            transactions={transactions} setTransactions={setTransactions}
-            categories={financeCategories} setCategories={setFinanceCategories}
-            itemsPerPage={itemsPerPage}
-          />
-        )}
-        {activeTab === 'meetings' && (
-          <MeetingsView 
-            meetings={meetings} setMeetings={setMeetings}
-            categories={meetingCategories} setCategories={setMeetingCategories}
-            itemsPerPage={itemsPerPage}
-          />
-        )}
-        {activeTab === 'tasks' && (
-          <TasksView 
-            tasks={tasks} setTasks={setTasks}
-            categories={taskCategories} setCategories={setTaskCategories}
-            itemsPerPage={itemsPerPage}
-          />
-        )}
+  return (
+    <div className="flex flex-col md:flex-row h-screen w-full bg-slate-50 overflow-hidden">
+      
+      {/* Sidebar - Only Desktop */}
+      <aside className={`hidden md:flex flex-col w-64 bg-white border-r border-slate-200 transition-all duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full w-0 overflow-hidden'}`}>
+        <div className="p-8">
+          <h1 className="text-2xl font-black text-indigo-600 tracking-tighter">OmniPro</h1>
+          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Professional Suite</p>
+        </div>
+        
+        <nav className="flex-1 px-4 space-y-2 mt-4">
+          {navItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id as any)}
+              className={`w-full flex items-center gap-4 px-4 py-4 rounded-2xl font-bold transition-all ${
+                activeTab === item.id 
+                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' 
+                : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
+              }`}
+            >
+              {item.icon}
+              <span className="text-sm">{item.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        <div className="p-6">
+          <button 
+            onClick={() => setShowSettings(true)}
+            className={`w-full flex items-center gap-4 px-4 py-4 rounded-2xl font-bold transition-all ${showSettings ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-50'}`}
+          >
+            <Settings size={20} />
+            <span className="text-sm">Settings</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <main className="flex-1 flex flex-col h-full overflow-hidden relative">
+        
+        {/* Header - Adaptive */}
+        <header className="px-6 py-4 md:py-6 bg-white/80 backdrop-blur-md flex justify-between items-center z-40 border-b border-slate-100 md:border-none">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="hidden md:block p-2 text-slate-400 hover:bg-slate-50 rounded-xl transition-colors"
+            >
+              <Menu size={20} />
+            </button>
+            <div>
+              <h1 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight">
+                {navItems.find(n => n.id === activeTab)?.label}
+              </h1>
+              <p className="text-[10px] text-slate-400 font-bold tracking-[0.2em] uppercase md:hidden">Mobile Pro APK</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setShowSettings(true)} className="p-2.5 bg-slate-50 rounded-2xl text-slate-400 active:scale-90 transition-all md:hidden">
+              <Settings size={20} />
+            </button>
+          </div>
+        </header>
+
+        {/* Dynamic View Scroll Area */}
+        <div className="flex-1 overflow-y-auto no-scrollbar bg-slate-50/50">
+          <div className="max-w-6xl mx-auto">
+            {activeTab === 'finance' && (
+              <FinanceView 
+                transactions={transactions} setTransactions={setTransactions}
+                categories={financeCategories} setCategories={setFinanceCategories}
+                itemsPerPage={itemsPerPage}
+              />
+            )}
+            {activeTab === 'meetings' && (
+              <MeetingsView 
+                meetings={meetings} setMeetings={setMeetings}
+                categories={meetingCategories} setCategories={setMeetingCategories}
+                itemsPerPage={itemsPerPage}
+              />
+            )}
+            {activeTab === 'tasks' && (
+              <TasksView 
+                tasks={tasks} setTasks={setTasks}
+                categories={taskCategories} setCategories={setTaskCategories}
+                itemsPerPage={itemsPerPage}
+              />
+            )}
+            {activeTab === 'portal' && (
+              <PortalView links={portalLinks} setLinks={setPortalLinks} />
+            )}
+          </div>
+        </div>
+
+        {/* Bottom Nav - Only Mobile */}
+        <nav className="md:hidden bg-white/90 backdrop-blur-xl border-t border-slate-100 px-6 py-4 flex justify-between items-center z-50">
+          {navItems.map((item) => (
+            <button 
+              key={item.id}
+              onClick={() => setActiveTab(item.id as any)} 
+              className={`flex flex-col items-center gap-1 transition-all flex-1 ${activeTab === item.id ? 'text-indigo-600' : 'text-slate-300'}`}
+            >
+              <div className={`p-1 ${activeTab === item.id ? 'scale-110' : ''}`}>{item.icon}</div>
+              <span className={`text-[8px] font-black uppercase tracking-wider ${activeTab === item.id ? 'opacity-100' : 'opacity-40'}`}>{item.label}</span>
+            </button>
+          ))}
+        </nav>
       </main>
 
+      {/* Optimized Settings Modal - Floating and Compact */}
       {showSettings && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[200] flex items-center justify-center p-6">
-          <div className="bg-white rounded-[40px] w-full max-w-xs p-8 animate-in zoom-in duration-300 relative shadow-2xl">
-            <button onClick={() => setShowSettings(false)} className="absolute right-6 top-6 text-slate-300">✕</button>
-            <div className="space-y-6">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-slate-100 text-indigo-600 rounded-3xl flex items-center justify-center mx-auto mb-2">
-                  <Database size={32} />
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4 md:p-12">
+          {/* Overlay click to close */}
+          <div className="absolute inset-0" onClick={() => setShowSettings(false)}></div>
+          
+          <div className="bg-white rounded-[40px] w-full max-w-lg max-h-[85vh] overflow-y-auto no-scrollbar p-6 md:p-10 animate-in zoom-in-95 duration-200 relative shadow-2xl">
+            <button 
+              onClick={() => setShowSettings(false)} 
+              className="absolute right-6 top-6 text-slate-300 p-2 hover:bg-slate-50 rounded-full transition-colors z-10"
+            >
+              <X size={24} />
+            </button>
+            
+            <div className="space-y-8">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-3xl flex items-center justify-center shadow-sm">
+                  <Database size={28} />
                 </div>
-                <h2 className="text-xl font-bold text-slate-800">Settings</h2>
+                <div>
+                  <h2 className="text-2xl font-black text-slate-800 tracking-tight">Settings</h2>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Konfigurasi Aplikasi</p>
+                </div>
               </div>
 
-              <div className="bg-slate-50 p-4 rounded-3xl space-y-3">
-                <div className="flex items-center gap-2 text-indigo-600">
-                  <ListOrdered size={16} />
-                  <span className="text-[10px] font-black uppercase tracking-widest">Tampilan</span>
+              {/* Items Per Page Section */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Layers size={16} className="text-indigo-500" />
+                  <h3 className="text-xs font-black text-slate-700 uppercase tracking-widest">Tampilan</h3>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs font-bold text-slate-600">Item per Halaman</span>
-                  <select 
+                <div className="bg-slate-50 p-6 rounded-3xl">
+                  <div className="flex justify-between items-center mb-4">
+                    <span className="text-sm font-bold text-slate-600">Item per halaman</span>
+                    <span className="bg-indigo-600 text-white px-3 py-1 rounded-xl text-xs font-black">{itemsPerPage}</span>
+                  </div>
+                  <input 
+                    type="range" 
+                    min="5" 
+                    max="50" 
+                    step="5" 
                     value={itemsPerPage} 
                     onChange={(e) => setItemsPerPage(parseInt(e.target.value))}
-                    className="bg-white border border-slate-200 rounded-xl px-2 py-1 text-xs font-bold outline-none"
-                  >
-                    <option value={5}>5 Item</option>
-                    <option value={10}>10 Item</option>
-                    <option value={15}>15 Item</option>
-                  </select>
+                    className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                  />
+                  <div className="flex justify-between mt-2 text-[10px] font-bold text-slate-400">
+                    <span>5</span>
+                    <span>50</span>
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-2">
-                <button onClick={handleExportData} className="flex items-center justify-between p-4 bg-indigo-50 rounded-2xl text-indigo-700 text-sm font-bold">
-                  <span>Ekspor Data</span>
-                  <Download size={16} />
-                </button>
-                <label className="flex items-center justify-between p-4 bg-emerald-50 rounded-2xl text-emerald-700 text-sm font-bold cursor-pointer">
-                  <span>Impor Data</span>
-                  <Upload size={16} />
-                  <input type="file" accept=".json" onChange={handleImportData} className="hidden" />
-                </label>
-                <button onClick={() => { if(confirm('Hapus semua?')) { setTransactions([]); setMeetings([]); setTasks([]); } }} className="flex items-center justify-between p-4 bg-red-50 rounded-2xl text-red-600 text-sm font-bold">
-                  <span>Reset Data</span>
-                  <Trash2 size={16} />
+              {/* Backup & Restore Section */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Database size={16} className="text-indigo-500" />
+                  <h3 className="text-xs font-black text-slate-700 uppercase tracking-widest">Data Management</h3>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <button 
+                    onClick={exportData}
+                    className="flex flex-col items-center gap-3 p-5 bg-white border border-slate-100 rounded-3xl hover:border-indigo-200 hover:bg-indigo-50/30 transition-all active:scale-95 group"
+                  >
+                    <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                      <Download size={20} />
+                    </div>
+                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-600 text-center">Ekspor JSON</span>
+                  </button>
+                  <button 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex flex-col items-center gap-3 p-5 bg-white border border-slate-100 rounded-3xl hover:border-indigo-200 hover:bg-indigo-50/30 transition-all active:scale-95 group"
+                  >
+                    <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                      <Upload size={20} />
+                    </div>
+                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-600 text-center">Impor Data</span>
+                    <input type="file" ref={fileInputRef} onChange={importData} className="hidden" accept=".json" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Danger Zone */}
+              <div className="pt-4 border-t border-slate-100">
+                <div className="flex items-center gap-2 mb-4">
+                  <AlertTriangle size={16} className="text-red-500" />
+                  <h3 className="text-xs font-black text-red-500 uppercase tracking-widest">Danger Zone</h3>
+                </div>
+                <button 
+                  onClick={() => { if(confirm('Hapus semua data secara permanen?')) { setTransactions([]); setMeetings([]); setTasks([]); setPortalLinks(DEFAULT_PORTAL_LINKS); } }} 
+                  className="w-full flex items-center justify-center gap-3 p-5 bg-red-50 hover:bg-red-100 rounded-[2rem] text-red-600 transition-colors active:scale-[0.98] font-black text-xs uppercase tracking-widest"
+                >
+                  <Trash2 size={18} />
+                  Hapus Semua Data
                 </button>
               </div>
 
-              <button onClick={() => setShowSettings(false)} className="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold text-sm">Selesai</button>
+              <button 
+                onClick={() => setShowSettings(false)} 
+                className="w-full bg-slate-900 text-white py-5 rounded-[2.5rem] font-black text-sm uppercase tracking-[0.2em] shadow-xl hover:bg-indigo-600 transition-all active:scale-95"
+              >
+                Selesai
+              </button>
             </div>
           </div>
         </div>
       )}
-
-      <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/90 backdrop-blur-xl border-t border-slate-100 px-8 py-4 flex justify-between items-center z-50">
-        <NavButton active={activeTab === 'finance'} onClick={() => setActiveTab('finance')} icon={<Wallet size={22} />} label="Finance" />
-        <NavButton active={activeTab === 'meetings'} onClick={() => setActiveTab('meetings')} icon={<Calendar size={22} />} label="Meeting" />
-        <NavButton active={activeTab === 'tasks'} onClick={() => setActiveTab('tasks')} icon={<CheckSquare size={22} />} label="Tugas" />
-      </nav>
     </div>
   );
 }
-
-const NavButton = ({ active, onClick, icon, label }: any) => (
-  <button onClick={onClick} className={`flex flex-col items-center gap-1.5 transition-all ${active ? 'text-indigo-600' : 'text-slate-300'}`}>
-    <div className={`p-1 ${active ? 'scale-110' : ''}`}>{icon}</div>
-    <span className={`text-[9px] font-black uppercase tracking-wider ${active ? 'opacity-100' : 'opacity-40'}`}>{label}</span>
-  </button>
-);
+  
