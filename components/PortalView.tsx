@@ -93,20 +93,24 @@ const PortalView: React.FC<PortalViewProps> = ({ links, setLinks }) => {
       <div className="flex justify-between items-center max-w-5xl mx-auto">
         <div>
           <h2 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">Portal Website</h2>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Simpan link aplikasi eksternal anda</p>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Daftar aplikasi eksternal terpilih</p>
         </div>
+        
+        {/* FITUR TAMBAH DINONAKTIFKAN SEMENTARA */}
+        {/* 
         <button 
           onClick={handleOpenAdd}
           className="w-12 h-12 md:w-14 md:h-14 bg-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-100 active:scale-95 transition-all"
         >
           <Plus size={28} />
-        </button>
+        </button> 
+        */}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
         {links.length === 0 ? (
           <div className="col-span-full bg-white border-2 border-dashed border-slate-100 p-16 rounded-[40px] text-center">
-            <p className="text-slate-300 text-xs font-black uppercase tracking-widest">Portal belum ditambahkan</p>
+            <p className="text-slate-300 text-xs font-black uppercase tracking-widest">Portal belum tersedia</p>
           </div>
         ) : (
           links.map((link) => (
@@ -118,6 +122,9 @@ const PortalView: React.FC<PortalViewProps> = ({ links, setLinks }) => {
                 <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
                   <Globe size={24} />
                 </div>
+                
+                {/* FITUR EDIT & HAPUS DINONAKTIFKAN SEMENTARA */}
+                {/* 
                 <div className="flex gap-2">
                   <button 
                     onClick={(e) => handleOpenEdit(e, link)}
@@ -138,7 +145,8 @@ const PortalView: React.FC<PortalViewProps> = ({ links, setLinks }) => {
                     {deleteConfirmId === link.id ? <Check size={18} /> : <Trash2 size={18} />}
                     {deleteConfirmId === link.id && <span className="text-[8px] font-black uppercase">YAKIN?</span>}
                   </button>
-                </div>
+                </div> 
+                */}
               </div>
 
               <div className="flex-1 space-y-2 mb-8">
@@ -176,6 +184,7 @@ const PortalView: React.FC<PortalViewProps> = ({ links, setLinks }) => {
         </div>
       </div>
 
+      {/* MODAL FORM TETAP ADA DI KODE TAPI TIDAK DAPAT DIPANGGIL KARENA BUTTON DIATAS DIKOMENTAR */}
       {showForm && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[200] flex items-end md:items-center justify-center p-0 md:p-6">
           <div className="bg-white w-full max-w-lg rounded-t-[44px] md:rounded-[44px] p-8 md:p-12 animate-in zoom-in-95 slide-in-from-bottom duration-300 shadow-2xl">

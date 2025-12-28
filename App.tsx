@@ -44,9 +44,9 @@ const INITIAL_MEETING_CATEGORIES: MeetingCategory[] = [
 const DEFAULT_PORTAL_LINKS: ExternalLink[] = [
   {
     id: 'p1',
-    name: 'Dashboard Analytics',
-    description: 'Monitor performa bisnis dan visualisasi data real-time.',
-    url: 'https://example.com/analytics'
+    name: 'DreamFund',
+    description: 'Platform cerdas untuk mengelola wishlist dan memantau progres tabungan barang impian Anda, dilengkapi asisten AI untuk strategi finansial yang lebih baik.',
+    url: 'https://wishlist-eight-mu.vercel.app/'
   }
 ];
 
