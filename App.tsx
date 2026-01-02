@@ -48,6 +48,14 @@ const DEFAULT_PORTAL_LINKS: ExternalLink[] = [
     description: 'Platform cerdas untuk mengelola wishlist dan memantau progres tabungan barang impian Anda, dilengkapi asisten AI untuk strategi finansial yang lebih baik.',
     url: 'https://wishlist-eight-mu.vercel.app/'
   }
+  {
+    id: 'p2',
+    name: 'Vault',
+    description: `SecureVault Pro adalah aplikasi manajemen kredensial tingkat lanjut yang dirancang untuk memberikan keamanan maksimal tanpa kompromi. 
+                  Lebih dari sekadar pengelola kata sandi, aplikasi ini adalah brankas digital serbaguna yang mampu menyimpan PIN, Pola Kunci Visual, Seed Phrase Crypto, hingga Secret Key API dalam satu antarmuka yang elegan dan modern.
+                  Dengan filosofi Privacy-First, seluruh data Anda dienkripsi secara lokal di perangkat, memastikan bahwa rahasia Anda tetap menjadi milik Anda sepenuhnya.`,
+    url: 'https://vault-silk-mu.vercel.app/'
+  }
 ];
 
 export default function App() {
