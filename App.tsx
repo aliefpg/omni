@@ -47,7 +47,7 @@ const DEFAULT_PORTAL_LINKS: ExternalLink[] = [
     name: 'DreamFund',
     description: 'Platform cerdas untuk mengelola wishlist dan memantau progres tabungan barang impian Anda, dilengkapi asisten AI untuk strategi finansial yang lebih baik.',
     url: 'https://wishlist-eight-mu.vercel.app/'
-  }
+  },
   {
     id: 'p2',
     name: 'Vault',
